@@ -1,25 +1,47 @@
 package ru.netology.repository;
 
+import ru.netology.exception.NotFoundException;
 import ru.netology.model.Post;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
-// Stub
 public class PostRepository {
-  public List<Post> all() {
-    return Collections.emptyList();
-  }
+    private final ConcurrentHashMap<Long, Post> posts;
+    private final AtomicLong idCounter = new AtomicLong();
 
-  public Optional<Post> getById(long id) {
-    return Optional.empty();
-  }
+    public PostRepository() {
+        posts = new ConcurrentHashMap<>();
+    }
 
-  public Post save(Post post) {
-    return post;
-  }
+    public List<Post> all() {
+        return new ArrayList<>(posts.values());
+    }
 
-  public void removeById(long id) {
-  }
+    public Optional<Post> getById(long id) {
+        return Optional.ofNullable(posts.get(id));
+    }
+
+    public Post save(Post post) {
+       if (post.getId() != 0 && !posts.containsKey(post.getId())) {
+           throw new NotFoundException();
+       } else {
+           posts.put(post.getId(), post);
+       }
+       if (post.getId() == 0) {
+           var newid = idCounter.incrementAndGet();
+           post.setId(newid);
+           posts.put(newid, post);
+       }
+       return post;
+    }
+
+    public void removeById(long id) {
+        if (posts.containsKey(id)) posts.remove(id);
+        else throw new NotFoundException("invalid id");
+    }
 }
